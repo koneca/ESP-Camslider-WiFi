@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h> 
 
 void error(const char *msg)
@@ -13,45 +14,114 @@ void error(const char *msg)
     exit(0);
 }
 
-int main(int argc, char *argv[])
-{
-    int sockfd, portno, n;
-    struct sockaddr_in serv_addr;
-    struct hostent *server;
+#define DEFAULT_PORT        2390
+#define MAX_PACKET_LENGTH   256
+#define MAX_VALUE_LENGTH    20
 
-    char buffer[256];
-    if (argc < 3) {
-       fprintf(stderr,"usage %s hostname port\n", argv[0]);
-       exit(0);
+enum TYPES
+{
+    Move,
+    Duration,
+}TupelType;
+
+typedef struct _slider_tlv
+{
+	TupelType               Type;
+	uint8_t                 Length;
+	uint8_t                 * Value;
+	
+} SLIDER_TLV, * PSLIDER_TLV;
+
+
+/* -------------------------------------------------------------------------- */
+
+void
+TargetInit(
+    struct sockaddr_in      * serv_addr
+    )
+{
+    bzero((char *) serv_addr, sizeof(serv_addr));
+    serv_addr->sin_family = AF_INET;
+    serv_addr->sin_port = htons(DEFAULT_PORT);
+     
+    inet_pton(serv_addr->sin_family, "192.168.4.1", &serv_addr->sin_addr);
+    
+    printf("The Server:\n  IP: %s\n", "192.168.4.1");    
+    return;
+}
+
+
+/* -------------------------------------------------------------------------- */
+
+unsigned int
+EnqueueTupel(
+    unsigned int            CurrPos,
+    const PSLIDER_TLV       * CurrTLV,
+    unsigned int            BufferLen
+    )
+{
+    unsigned int            LocPos = CurrPos;
+    
+    if(CurrPos >= BufferLen)
+    {
+        return 0;
     }
-    portno = atoi(argv[2]);
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) 
+    LocPos += sizeof (SLIDER_TLV);
+    
+    return 0;
+}
+
+
+/* -------------------------------------------------------------------------- */
+
+int
+main(
+    int argc,
+    char *argv[]
+    )
+{
+    int                     Sockfd, n;
+    struct sockaddr_in      Serv_addr;
+    char                    Buffer[MAX_PACKET_LENGTH];
+    PSLIDER_TLV             CurrTLV = 0;
+    unsigned int            CurrPos = 0;
+    char                    ValueBuffer[MAX_VALUE_LENGTH];
+    
+    TargetInit(&Serv_addr);
+      
+    CurrPos = 0;
+    CurrTLV = (PSLIDER_TLV) &Buffer;
+    
+    CurrTLV->Type = Move;
+    CurrTLV->Length = sizeof(uint8_t);
+    CurrTLV->Value = n = 2;
+    
+    printf("pos: %d\n", CurrPos);
+    CurrPos = EnqueueTupel(CurrPos, &CurrTLV, MAX_PACKET_LENGTH);
+    printf("pos: %d\n", CurrPos);
+    
+    
+    Sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (Sockfd < 0) 
         error("ERROR opening socket");
-    server = gethostbyname(argv[1]);
-    if (server == NULL) {
-        fprintf(stderr,"ERROR, no such host\n");
-        exit(0);
-    }
-    bzero((char *) &serv_addr, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    bcopy((char *)server->h_addr, 
-         (char *)&serv_addr.sin_addr.s_addr,
-         server->h_length);
-    serv_addr.sin_port = htons(portno);
-    if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
+
+       
+    if (connect(Sockfd,(struct sockaddr *) &Serv_addr,sizeof(Serv_addr)) < 0)
+    {
         error("ERROR connecting");
+    }
+        
     printf("Please enter the message: ");
-    bzero(buffer,256);
-    fgets(buffer,255,stdin);
-    n = write(sockfd,buffer,strlen(buffer));
+    bzero(Buffer, 256);
+    fgets(Buffer, 255, stdin);
+    n = write(Sockfd,Buffer,strlen(Buffer));
     if (n < 0) 
          error("ERROR writing to socket");
-    bzero(buffer,256);
-    n = read(sockfd,buffer,255);
+    bzero(Buffer,256);
+    n = read(Sockfd, Buffer, 255);
     if (n < 0) 
          error("ERROR reading from socket");
-    printf("%s\n",buffer);
-    close(sockfd);
+    printf("%s\n", Buffer);
+    close(Sockfd);
     return 0;
 }
