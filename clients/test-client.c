@@ -1,37 +1,45 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h> 
+/* test-client.c */
 
-void error(const char *msg)
+/* -------------------------------------------------------------------------- */
+/*!	\ingroup test-client
+	\file
+	\brief Client for Linux based Systems. For debugging the Target
+	*/ 
+/* -------------------------------------------------------------------------- */
+
+#include "test-client.h"
+
+
+/* -------------------------------------------------------------------------- */
+
+ErrorCode 
+ClearBuffer(
+	char					*Buffer,
+	unsigned int 			Length
+)
 {
-    perror(msg);
-    exit(0);
-}
-
-#define DEFAULT_PORT        2390
-#define MAX_PACKET_LENGTH   256
-#define MAX_VALUE_LENGTH    20
-
-enum TYPES
-{
-    Move,
-    Duration,
-}TupelType;
-
-typedef struct _slider_tlv
-{
-	TupelType               Type;
-	uint8_t                 Length;
-	uint8_t                 * Value;
+	ErrorCode				Status = ERR_SUCCESS;
+	unsigned int 			I = 0;
+	__try
+	{
 	
-} SLIDER_TLV, * PSLIDER_TLV;
-
+		if(0 == *Buffer || 1 > Length)
+		{
+			CHECK(ERR_INSUFFICIENT_RESOURCES);
+		}
+	
+		for(I = 0; I < Length; I++)
+		{
+			Buffer[I] = '\0';
+		}
+	
+	}
+	__finally
+	{
+	
+	}
+	return Status;
+}
 
 /* -------------------------------------------------------------------------- */
 
@@ -55,22 +63,85 @@ TargetInit(
 
 unsigned int
 EnqueueTupel(
+	PSLIDER_LIST_ENTRY		RequestsList,
+	const char 				* Buffer,
     unsigned int            CurrPos,
-    const PSLIDER_TLV       * CurrTLV,
-    unsigned int            BufferLen
+    const unsigned int      BufferLen,
+    const uint8_t			Type,
+    const unsigned char *	Value,
+    const uint8_t			Length
     )
 {
     unsigned int            LocPos = CurrPos;
-    
-    if(CurrPos >= BufferLen)
+	PSLIDER_TLV_DATA		CurrTLV = 0;
+	unsigned int 			I = 0;
+	    
+    if(LocPos >= BufferLen)
     {
+        printf("Enqueue Tupel: Error: buffer overflow\n");
+        return 0;
+    }  
+    if((LocPos + sizeof(SLIDER_TLV_DATA)) > BufferLen)
+    {
+        printf("Enqueue Tupel: Error: buffer full\n");
         return 0;
     }
-    LocPos += sizeof (SLIDER_TLV);
+    if(0 == Buffer || 0 == Value )
+    {
+        printf("Enqueue Tupel: Error: Missing input data\n");
+        return 0;
+    }
+    if(Length > MAX_VALUE_LENGTH)
+    {
+    	printf("Enqueue Tupel: Error: Missing input data\n");
+        return 0;
+    }
+ 
+ 	printf("locpos %d\n", LocPos);
+    CurrTLV = (PSLIDER_TLV_DATA) &Buffer[LocPos];
+    CurrTLV->Type = Type;
+    CurrTLV->Length = Length;
     
-    return 0;
+    for(I = 0; I < Length; I++)
+    {
+    	CurrTLV->Value[I] = Value[I];
+    }
+    
+    
+
+    LocPos += sizeof (SLIDER_TLV_DATA) - (MAX_VALUE_LENGTH-Length);
+    
+    return LocPos;
 }
 
+ErrorCode
+BuildMessage(
+	PSLIDER_APP				Slider,
+	char					* Buffer,
+	const unsigned int		CurrPos,
+	const unsigned int      BufferLen
+	)
+{
+    unsigned int            LocPos = CurrPos;
+	PSLIDER_TLV_HEADER		Header = 0;
+    
+	ClearBuffer(Buffer, sizeof(Buffer));
+
+    srand(time(NULL));
+	Header = (PSLIDER_TLV_HEADER) Buffer;
+	Header->StartTag = 4;
+    Header->Id = htonl(rand());
+    LocPos += sizeof (SLIDER_TLV_HEADER);
+    
+    printf("pos %d 0x%08x\n", LocPos, ntohl( Header->Id));
+    LocPos = EnqueueTupel(&Slider->RequestsList, Buffer, LocPos, MAX_PACKET_LENGTH, TLV_Move, (unsigned char *)"left", (uint8_t)sizeof("left"));
+    printf("pos %d \n", LocPos);
+    LocPos = EnqueueTupel(&Slider->RequestsList, Buffer, LocPos, MAX_PACKET_LENGTH, TLV_Move, (unsigned char *)"right", (uint8_t)sizeof("right"));
+    printf("pos %d \n", LocPos);    
+   
+    
+	return LocPos;
+}
 
 /* -------------------------------------------------------------------------- */
 
@@ -82,24 +153,20 @@ main(
 {
     int                     Sockfd, n;
     struct sockaddr_in      Serv_addr;
-    char                    Buffer[MAX_PACKET_LENGTH];
-    PSLIDER_TLV             CurrTLV = 0;
+    char         			Buffer[MAX_PACKET_LENGTH];
     unsigned int            CurrPos = 0;
-    char                    ValueBuffer[MAX_VALUE_LENGTH];
+    //char                    ValueBuffer[MAX_VALUE_LENGTH];
+   	SLIDER_APP				Slider;
     
     TargetInit(&Serv_addr);
+    
+    Slider.ServerAdress = Serv_addr;
+        
+    CurrPos = BuildMessage(&Slider, Buffer, 0, MAX_PACKET_LENGTH);
       
-    CurrPos = 0;
-    CurrTLV = (PSLIDER_TLV) &Buffer;
+    HexDump("after", Buffer, CurrPos);
     
-    CurrTLV->Type = Move;
-    CurrTLV->Length = sizeof(uint8_t);
-    CurrTLV->Value = n = 2;
-    
-    printf("pos: %d\n", CurrPos);
-    CurrPos = EnqueueTupel(CurrPos, &CurrTLV, MAX_PACKET_LENGTH);
-    printf("pos: %d\n", CurrPos);
-    
+
     
     Sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (Sockfd < 0) 
@@ -113,8 +180,8 @@ main(
         
     printf("Please enter the message: ");
     bzero(Buffer, 256);
-    fgets(Buffer, 255, stdin);
-    n = write(Sockfd,Buffer,strlen(Buffer));
+   // fgets(Buffer, 255, stdin);
+    n = write(Sockfd, Buffer, strlen(Buffer));
     if (n < 0) 
          error("ERROR writing to socket");
     bzero(Buffer,256);
