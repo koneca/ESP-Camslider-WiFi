@@ -67,6 +67,7 @@ EnqueueTupel(
 	const char 				* Buffer,
     unsigned int            CurrPos,
     const unsigned int      BufferLen,
+    const unsigned short	Id,
     const uint8_t			Type,
     const unsigned char *	Value,
     const uint8_t			Length
@@ -78,7 +79,7 @@ EnqueueTupel(
 	    
     if(LocPos >= BufferLen)
     {
-        printf("Enqueue Tupel: Error: buffer overflow\n");
+        printf("Enqueue Tupel: Error: buffer overflow Pos: %d Len:%d\n", LocPos, BufferLen);
         return 0;
     }  
     if((LocPos + sizeof(SLIDER_TLV_DATA)) > BufferLen)
@@ -99,6 +100,7 @@ EnqueueTupel(
  
  	printf("locpos %d\n", LocPos);
     CurrTLV = (PSLIDER_TLV_DATA) &Buffer[LocPos];
+    CurrTLV->Id = Id;
     CurrTLV->Type = Type;
     CurrTLV->Length = Length;
     
@@ -123,22 +125,20 @@ BuildMessage(
 	)
 {
     unsigned int            LocPos = CurrPos;
-	PSLIDER_TLV_HEADER		Header = 0;
     
-	ClearBuffer(Buffer, sizeof(Buffer));
-
-    srand(time(NULL));
-	Header = (PSLIDER_TLV_HEADER) Buffer;
-	Header->StartTag = 4;
-    Header->Id = htonl(rand());
-    LocPos += sizeof (SLIDER_TLV_HEADER);
+	ClearBuffer(Buffer, BufferLen);
     
-    printf("pos %d 0x%08x\n", LocPos, ntohl( Header->Id));
-    LocPos = EnqueueTupel(&Slider->RequestsList, Buffer, LocPos, MAX_PACKET_LENGTH, TLV_Move, (unsigned char *)"left", (uint8_t)sizeof("left"));
+    printf("pos %d 0x%04x\n", LocPos, Slider->CurrId);
+    LocPos = EnqueueTupel(&Slider->RequestsList, Buffer, LocPos, MAX_PACKET_LENGTH, htons(Slider->CurrId), TLV_Move, (unsigned char *)"left", (uint8_t)sizeof("left"));
+	
+	Slider->CurrId++;
+    
+    printf("pos %d 0x%04x\n", LocPos, Slider->CurrId);
+    LocPos = EnqueueTupel(&Slider->RequestsList, Buffer, LocPos, MAX_PACKET_LENGTH, htons(Slider->CurrId), TLV_Move, (unsigned char *)"right", (uint8_t)sizeof("right"));
+	
+	Slider->CurrId++;
+	
     printf("pos %d \n", LocPos);
-    LocPos = EnqueueTupel(&Slider->RequestsList, Buffer, LocPos, MAX_PACKET_LENGTH, TLV_Move, (unsigned char *)"right", (uint8_t)sizeof("right"));
-    printf("pos %d \n", LocPos);    
-   
     
 	return LocPos;
 }
@@ -165,8 +165,6 @@ main(
     CurrPos = BuildMessage(&Slider, Buffer, 0, MAX_PACKET_LENGTH);
       
     HexDump("after", Buffer, CurrPos);
-    
-
     
     Sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (Sockfd < 0) 

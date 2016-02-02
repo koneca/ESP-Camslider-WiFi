@@ -30,7 +30,7 @@
 #endif
 
 #define DEFAULT_PORT        2390
-#define MAX_PACKET_LENGTH   256
+#define MAX_PACKET_LENGTH   255
 #define MAX_VALUE_LENGTH    20
 
 #define SLIDER_START_TAG	0x7C
@@ -47,6 +47,8 @@
 
 #define CHECK(__e)					if(0 != (Status = __e)) { \
 	TraceCheck(__FILE__, __LINE__, Status); __leave; }
+	
+#define TRACE(n)					printf(n);
 	
 #define for_list(List, Entry)		for(Entry = (List)->Flink; Entry != (List); Entry = Entry->Flink)
 #define lst_cnt(List, Entry, Count) {Count = 0; for_list(List, Entry){Count ++}}
@@ -78,20 +80,13 @@ ErrorCode;
 
 typedef struct _slider_tlv_data
 {
+	unsigned short 			Id;
 	uint8_t               	Type;
 	uint8_t                 Length;
 	uint8_t					Value[MAX_VALUE_LENGTH];
 	
 } DATA_PACKED
 SLIDER_TLV_DATA, * PSLIDER_TLV_DATA;
-
-typedef struct _slider_tlv_HEADER
-{
-	char					StartTag;
-	unsigned int			Id;
-	
-} DATA_PACKED
-SLIDER_TLV_HEADER, * PSLIDER_TLV_HEADER;
 
 typedef struct _SLIDER_LIST_ENTRY {
 	LIST_ENTRY				List;		/* Link				*/
@@ -107,6 +102,7 @@ typedef struct _SLIDER_APP
 	BOOLEAN					Connected;
 	unsigned int 			LastPosition;
 	struct sockaddr_in      ServerAdress;
+	unsigned short			CurrId;
 
 } DATA_PACKED
 SLIDER_APP, * PSLIDER_APP;
