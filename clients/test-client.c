@@ -60,7 +60,15 @@ TargetInit(
 
 
 /* -------------------------------------------------------------------------- */
-
+/*! \brief euqueue one TLV tupel to the send string. For now there will be sent only one tupel at a time (no queue on slider side)
+ *  @param [IN/OUT]Buffer The send buffer, where the the Tupel has to be enqueued. This have to be allocated bevore invocation
+ *  @param [IN]CurrPos Position in the buffer
+ *  @param [IN]BufferLen The length of the send buffer
+ *  @param [IN]Id The ID of the command. Because the Slider answers to every Command. Store the command in an queue according to this ID 
+ *  @param [IN]Type The type of the command
+ *  @param [Length] The length of the command
+ *  @param [IN]Value The value of the command
+ */
 unsigned int
 EnqueueTupel(
 	PSLIDER_LIST_ENTRY		RequestsList,
@@ -98,7 +106,7 @@ EnqueueTupel(
         return 0;
     }
  
- 	printf("locpos %d\n", LocPos);
+ 	//printf("locpos %d\n", LocPos);
     CurrTLV = (PSLIDER_TLV_DATA) &Buffer[LocPos];
     CurrTLV->Id = Id;
     CurrTLV->Type = Type;
@@ -108,9 +116,7 @@ EnqueueTupel(
     {
     	CurrTLV->Value[I] = Value[I];
     }
-    
-    
-
+   
     LocPos += sizeof (SLIDER_TLV_DATA) - (MAX_VALUE_LENGTH-Length);
     
     return LocPos;
@@ -127,18 +133,15 @@ BuildMessage(
     unsigned int            LocPos = CurrPos;
     
 	ClearBuffer(Buffer, BufferLen);
-    
-    printf("pos %d 0x%04x\n", LocPos, Slider->CurrId);
+
     LocPos = EnqueueTupel(&Slider->RequestsList, Buffer, LocPos, MAX_PACKET_LENGTH, htons(Slider->CurrId), TLV_Move, (unsigned char *)"left", (uint8_t)sizeof("left"));
 	
 	Slider->CurrId++;
     
-    printf("pos %d 0x%04x\n", LocPos, Slider->CurrId);
-    LocPos = EnqueueTupel(&Slider->RequestsList, Buffer, LocPos, MAX_PACKET_LENGTH, htons(Slider->CurrId), TLV_Move, (unsigned char *)"right", (uint8_t)sizeof("right"));
+    //printf("pos %d 0x%04x\n", LocPos, Slider->CurrId);
+   // LocPos = EnqueueTupel(&Slider->RequestsList, Buffer, LocPos, MAX_PACKET_LENGTH, htons(Slider->CurrId), TLV_Move, (unsigned char *)"right", (uint8_t)sizeof("right"));
 	
 	Slider->CurrId++;
-	
-    printf("pos %d \n", LocPos);
     
 	return LocPos;
 }
@@ -163,25 +166,24 @@ main(
     Slider.ServerAdress = Serv_addr;
         
     CurrPos = BuildMessage(&Slider, Buffer, 0, MAX_PACKET_LENGTH);
-      
-    HexDump("after", Buffer, CurrPos);
     
     Sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (Sockfd < 0) 
-        error("ERROR opening socket");
-
+    if (Sockfd < 0)
+    {
+        TRACE("ERROR opening socket");
+	}
        
     if (connect(Sockfd,(struct sockaddr *) &Serv_addr,sizeof(Serv_addr)) < 0)
     {
         error("ERROR connecting");
     }
         
-    printf("Please enter the message: ");
-    bzero(Buffer, 256);
-   // fgets(Buffer, 255, stdin);
-    n = write(Sockfd, Buffer, strlen(Buffer));
-    if (n < 0) 
+    HexDump("Sending UDP message", Buffer, CurrPos);
+
+    if(0 > (n = write(Sockfd, Buffer, CurrPos)))
+    { 
          error("ERROR writing to socket");
+    }
     bzero(Buffer,256);
     n = read(Sockfd, Buffer, 255);
     if (n < 0) 
