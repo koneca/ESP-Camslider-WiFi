@@ -16,7 +16,7 @@ CFLAGS                         = -Wall $(CINCLUDE)
 LIBS                           = # -lpthread -lhwinfo
 
 
-all: directories dbg.o client
+all: directories dbg.o list.o client
 
 # create directories
 
@@ -30,7 +30,11 @@ dbg.o: dbg.c
 	@$(CC) -c $(CINCLUDE) $(CFLAGS) $(LIBS) $< -o $(OUT)/$@
 	@echo $<
 
-client:  $(SRC)/test-client.c $(OUT)/dbg.o
+list.o: list.c
+	@$(CC) -c $(CINCLUDE) $(CFLAGS) $(LIBS) $< -o $(OUT)/$@
+	@echo $<
+	
+client:  $(SRC)/test-client.c $(OUT)/dbg.o $(OUT)/list.o
 	@$(CC)  $(CFLAGS) $(LIBS) $< -o $(OUT)/$@ $(OUT)/dbg.o
 	@echo $<
 

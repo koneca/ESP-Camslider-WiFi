@@ -9,6 +9,7 @@
 
 #include "test-client.h"
 
+static SLIDER_APP Slider;
 
 /* -------------------------------------------------------------------------- */
 
@@ -71,7 +72,7 @@ TargetInit(
  */
 unsigned int
 EnqueueTupel(
-	PSLIDER_LIST_ENTRY		RequestsList,
+	PLIST_ENTRY				RequestsList,
 	const char 				* Buffer,
     unsigned int            CurrPos,
     const unsigned int      BufferLen,
@@ -84,6 +85,7 @@ EnqueueTupel(
     unsigned int            LocPos = CurrPos;
 	PSLIDER_TLV_DATA		CurrTLV = 0;
 	unsigned int 			I = 0;
+	PSLIDER_LIST_ENTRY		Data = 0;
 	    
     if(LocPos >= BufferLen)
     {
@@ -118,6 +120,11 @@ EnqueueTupel(
     }
    
     LocPos += sizeof (SLIDER_TLV_DATA) - (MAX_VALUE_LENGTH-Length);
+    
+    Data = (PSLIDER_LIST_ENTRY)malloc(sizeof(SLIDER_LIST_ENTRY));
+    memcpy(&Data->Entry, CurrTLV, sizeof(SLIDER_TLV_DATA));
+    
+    InsertTailList(RequestsList, Data->Entry);
     
     return LocPos;
 }
@@ -159,11 +166,12 @@ main(
     char         			Buffer[MAX_PACKET_LENGTH];
     unsigned int            CurrPos = 0;
     //char                    ValueBuffer[MAX_VALUE_LENGTH];
-   	SLIDER_APP				Slider;
     
     TargetInit(&Serv_addr);
     
     Slider.ServerAdress = Serv_addr;
+    
+    InitializeListHead(&Slider.RequestsList);
         
     CurrPos = BuildMessage(&Slider, Buffer, 0, MAX_PACKET_LENGTH);
     

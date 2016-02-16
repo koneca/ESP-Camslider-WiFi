@@ -89,7 +89,7 @@ typedef struct _slider_tlv_data
 SLIDER_TLV_DATA, * PSLIDER_TLV_DATA;
 
 typedef struct _SLIDER_LIST_ENTRY {
-	LIST_ENTRY				List;		/* Link				*/
+	PLIST_ENTRY				Entry;		/* Link				*/
 	unsigned int 			Id;
 	SLIDER_TLV_DATA			Data;
 	
@@ -98,7 +98,7 @@ SLIDER_LIST_ENTRY, *PSLIDER_LIST_ENTRY;
 
 typedef struct _SLIDER_APP
 {
-	SLIDER_LIST_ENTRY		RequestsList;
+	LIST_ENTRY				RequestsList;
 	BOOLEAN					Connected;
 	unsigned int 			LastPosition;
 	struct sockaddr_in      ServerAdress;
@@ -130,6 +130,35 @@ TraceCheck(
 void
 error(
 	const char *msg
+	);
+	
+/* ------------------------------- list --------------------------------------*/
+
+void
+InitializeListHead(
+	PLIST_ENTRY 		ListHead
+	);
+
+void
+InsertTailList(
+	PLIST_ENTRY 		ListHead,
+	PLIST_ENTRY 		Entry
+	);
+	
+void
+InsertHeadList(
+	PLIST_ENTRY 		ListHead,
+	PLIST_ENTRY 		Entry
+	);
+	
+PLIST_ENTRY 
+RemoveHeadList(
+	PLIST_ENTRY 		ListHead
+	);
+	
+int
+CountListItems(
+	PLIST_ENTRY 		ListHead
 	);
 	
 #endif

@@ -11,12 +11,19 @@
 
 #include "test-client.h"
 
-void InitializeListHead(PLIST_ENTRY ListHead)
+void
+InitializeListHead(
+	PLIST_ENTRY 		ListHead
+	)
 {
     ListHead->Flink = ListHead->Blink = ListHead;
 }
 
-void InsertTailList(PLIST_ENTRY ListHead, PLIST_ENTRY Entry)
+void
+InsertTailList(
+	PLIST_ENTRY 		ListHead,
+	PLIST_ENTRY 		Entry
+	)
 {
     PLIST_ENTRY Blink;
 
@@ -27,7 +34,11 @@ void InsertTailList(PLIST_ENTRY ListHead, PLIST_ENTRY Entry)
     ListHead->Blink = Entry;
 }
 
-void InsertHeadList(PLIST_ENTRY ListHead, PLIST_ENTRY Entry)
+void
+InsertHeadList(
+	PLIST_ENTRY 		ListHead,
+	PLIST_ENTRY 		Entry
+	)
 {
     PLIST_ENTRY Flink;
 
@@ -51,7 +62,9 @@ int RemoveEntryList(PLIST_ENTRY Entry)
 }
 
 PLIST_ENTRY 
-RemoveHeadList(PLIST_ENTRY ListHead)
+RemoveHeadList(
+	PLIST_ENTRY 		ListHead
+	)
 {
     PLIST_ENTRY Flink;
     PLIST_ENTRY Entry;
@@ -76,7 +89,10 @@ RemoveTailList(PLIST_ENTRY ListHead)
     return Entry;
 }
 
-int CountListItems(PLIST_ENTRY ListHead)
+int
+CountListItems(
+	PLIST_ENTRY 		ListHead
+	)
 {
 	PLIST_ENTRY pe = ListHead->Flink;
 	int i = 0;
