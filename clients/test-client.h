@@ -65,8 +65,15 @@ typedef struct _LIST_ENTRY
 
 typedef enum _Tag_Types
 {
-    TLV_Move				= 1,
-    TLV_Duration,
+    TLV_Move				= 1,	// move one step into direction in value
+    TLV_Speed				= 2,	// set the speed of driving
+	TLV_Home				= 3,	// set the speed of driving or capture-drive
+	TLV_Capture				= 4,	// do one camera capture
+	TLV_Start				= 5,	// Start capture-drive. Give the direction in value
+
+	TLV_Drive_left			= 6,	// drive to the left. Give the number of steps in value
+	TLV_Drive_right			= 7.	// drive to the right. Give the number of steps in value
+
 } DATA_PACKED
  TupelType;
 

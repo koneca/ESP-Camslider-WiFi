@@ -215,6 +215,9 @@ ComputeCommand(
 	//unsigned int			LocPos = 0;
 	char 					delimiter[] = " ";
 	char 					*ptr = 0;
+	unsigned int			Tag = 0;
+	char 					* Value;
+	unsigned int 			ValueLen = 0;
 
 	if(0 == *Buffer)
 	{
@@ -233,32 +236,152 @@ ComputeCommand(
 
 	while (0 != ptr)
 	{
-		if(0 == strcmp("left", ptr))
+		// move one step in VALUE direction
+		if(0 == strcmp("move", ptr))
 		{
-
+			Tag = TLV_Move;
+			ptr = strok(NULL, delimiter);
+			if(0 == strlen(ptr))
+			{
+				TRACE("no value given\n");
+				Status = ERR_WRONG_INPUT;
+			}
+			else if(0 == strcmp("left", Value))
+			{
+				Value = 1; CmdLength = sizeof(int);
+			}
+			else if(0 == strcmp("right", Value))
+			{
+				Value = 2; CmdLength = sizeof(int);
+			}
+			else
+			{
+				TRACE("no valid value given: move [left, right]\n");
+				Status = ERR_WRONG_INPUT;
+			}
 		}
-		else if (0 == strcmp("right", ptr))
+		// set the driving speed
+		else if (0 == strcmp("speed", ptr))
 		{
-
+			Tag = TLV_Speed;
+			ptr = strok(NULL, delimiter);
+			if(0 == strlen(ptr))
+			{
+				TRACE("no value given\n");
+				Status = ERR_WRONG_INPUT;
+			}
+			else if(1 < atoi(Value) || 200 > atoi(Value))
+			{
+				Value = atoi(Value); CmdLength = sizeof(int);
+			}
+			else
+			{
+				TRACE("no valid value given: speed [1, ..., 200] \n");
+				Status = ERR_WRONG_INPUT;
+			}
 		}
-		else if (0 == strcmp("begin", ptr))
+		// drive to one end of the rail
+		else if (0 == strcmp("home", ptr))
 		{
-
+			Tag = TLV_Home;
+			ptr = strok(NULL, delimiter);
+			if(0 == strlen(ptr))
+			{
+				TRACE("no value given\n");
+				Status = ERR_WRONG_INPUT;
+			}
+			else if(0 != strcmp("up", Value))
+			{
+				Value = 1; CmdLength = sizeof(int);
+			}
+			else if(0 != strcmp("down", Value))
+			{
+				Value = 2; CmdLength = sizeof(int);
+			}
+			else
+			{
+				TRACE("no valid value given: home [up, down] \n");
+				Status = ERR_WRONG_INPUT;
+			}
 		}
-		else if (0 == strcmp("end", ptr))
+		// do one capture. FUTURE: if value is given, do multiple captures
+		else if (0 == strcmp("capt", ptr))
 		{
-
+			Tag = TLV_Capture;
+			Value = 1;
+			CmdLength = sizeof(int);
 		}
 		else if (0 == strcmp("start", ptr))
 		{
-
+			Tag = TLV_Start;
+			ptr = strok(NULL, delimiter);
+			if(0 == strlen(ptr))
+			{
+				TRACE("no value given\n");
+				Status = ERR_WRONG_INPUT;
+			}
+			else if(0 != strcmp("up", Value))
+			{
+				Value = 1; CmdLength = sizeof(int);
+			}
+			else if(0 != strcmp("down", Value))
+			{
+				Value = 2; CmdLength = sizeof(int);
+			}
+			else
+			{
+				TRACE("no valid value given: start [up, down] \n");
+				Status = ERR_WRONG_INPUT;
+			}
 		}
-		else if (0 == strcmp("speed", ptr))
+
+		// drive VALUE steps to the left. Safe direction for capture even if zero
+		else if (0 == strcmp("left", ptr))
 		{
+			Tag = TLV_Drive_left;
+			ptr = strok(NULL, delimiter);
+			if(0 == strlen(ptr))
+			{
+				TRACE("no value given\n");
+				Status = ERR_WRONG_INPUT;
+			}
+			else if(1 < atoi(Value) || 200 > atoi(Value))
+			{
+				Value = atoi(Value); CmdLength = sizeof(int);
+			}
+			else
+			{
+				TRACE("no valid value given: left [1, ..., 200] \n");
+				Status = ERR_WRONG_INPUT;
+			}
+		}
+		// drive VALUE steps to the right. Safe direction for capture even if zero
+		else if (0 == strcmp("right", ptr))
+		{
+			Tag = TLV_Drive_right;
+			ptr = strok(NULL, delimiter);
+			if(0 == strlen(ptr))
+			{
+				TRACE("no value given\n");
+				Status = ERR_WRONG_INPUT;
+			}
+			else if(1 < atoi(Value) || 200 > atoi(Value))
+			{
+				Value = atoi(Value); CmdLength = sizeof(int);
+			}
+			else
+			{
+				TRACE("no valid value given: right [1, ..., 200] \n");
+				Status = ERR_WRONG_INPUT;
+			}
 
 		}
 	}
-	//LocPos = EnqueueTupel(&Slider->RequestsList, Buffer, LocPos, MAX_PACKET_LENGTH, htons(Slider->CurrId), TLV_Move, (unsigned char *)"left", (uint8_t)sizeof("left"));
+
+	if(ERR_SUCCESS == Status)
+	{
+		//LocPos = EnqueueTupel(&Slider->RequestsList, Buffer, LocPos, MAX_PACKET_LENGTH, htons(Slider->CurrId), TLV_Move, (unsigned char *)"left", (uint8_t)sizeof("left"));
+	}
 
 
 	return Status;
