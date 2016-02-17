@@ -9,17 +9,15 @@
 
 #include "test-client.h"
 
-static SLIDER_APP Slider;
-
 /* -------------------------------------------------------------------------- */
 
-ErrorCode 
+ERROR_CODE
 ClearBuffer(
 	char					*Buffer,
 	unsigned int 			Length
 )
 {
-	ErrorCode				Status = ERR_SUCCESS;
+	ERROR_CODE				Status = ERR_SUCCESS;
 	unsigned int 			I = 0;
 	__try
 	{
@@ -85,7 +83,7 @@ EnqueueTupel(
     unsigned int            LocPos = CurrPos;
 	PSLIDER_TLV_DATA		CurrTLV = 0;
 	unsigned int 			I = 0;
-	PSLIDER_LIST_ENTRY		Data = 0;
+	PSLIDER_LIST_ENTRY 		Entry = 0;
 	    
     if(LocPos >= BufferLen)
     {
@@ -121,15 +119,15 @@ EnqueueTupel(
    
     LocPos += sizeof (SLIDER_TLV_DATA) - (MAX_VALUE_LENGTH-Length);
     
-    Data = (PSLIDER_LIST_ENTRY)malloc(sizeof(SLIDER_LIST_ENTRY));
-    memcpy(&Data->Entry, CurrTLV, sizeof(SLIDER_TLV_DATA));
-    
-    InsertTailList(RequestsList, Data->Entry);
+    Entry = (PSLIDER_LIST_ENTRY)malloc(sizeof(SLIDER_LIST_ENTRY));
+    memcpy(&Entry->Data, CurrTLV, LocPos - CurrPos);
+
+    InsertTailList(RequestsList, Entry->Entry);
     
     return LocPos;
 }
 
-ErrorCode
+/*unsigned int
 BuildMessage(
 	PSLIDER_APP				Slider,
 	char					* Buffer,
@@ -145,58 +143,193 @@ BuildMessage(
 	
 	Slider->CurrId++;
     
-    //printf("pos %d 0x%04x\n", LocPos, Slider->CurrId);
-   // LocPos = EnqueueTupel(&Slider->RequestsList, Buffer, LocPos, MAX_PACKET_LENGTH, htons(Slider->CurrId), TLV_Move, (unsigned char *)"right", (uint8_t)sizeof("right"));
-	
-	Slider->CurrId++;
-    
 	return LocPos;
+}*/
+
+unsigned int
+SliderConnect(
+	PSLIDER_APP Slider
+	)
+{
+	unsigned int 			Status = 0;
+
+	Slider->SockFd = 0;
+
+    Slider->SockFd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (Slider->SockFd < 0)
+    {
+        TRACE("ERROR opening socket");
+	}
+
+    if (connect(Slider->SockFd, (struct sockaddr *)&Slider->ServerAdress, sizeof(Slider->ServerAdress)) < 0)
+    {
+        error("ERROR connecting");
+    }
+    return Status;
+}
+
+unsigned int
+SliderDisconnect(
+	PSLIDER_APP				Slider
+	)
+{
+	return close(Slider->SockFd);
+}
+
+ERROR_CODE
+ReadCommandFromStdin(
+		char 				* Buffer,
+		size_t				* Length
+		)
+{
+	ERROR_CODE				Status = 0;
+
+	if(0 == Buffer)
+	{
+		return ERR_WRONG_INPUT;
+	}
+
+	TRACE("Please enter command:\t");
+
+	if(-1 == getline(&Buffer, Length, stdin))
+	{
+		TRACE("Error reading line \n");
+		free(Buffer);
+		return ERR_WRONG_INPUT;
+	}
+
+
+	return Status;
+}
+
+unsigned int
+ComputeCommand(
+	PSLIDER_APP	 			Slider,
+	char					** Buffer,
+	const unsigned int 		Length,
+	char 					* Command,
+	const unsigned int	 	CmdLength
+	)
+{
+	ERROR_CODE				Status = ERR_SUCCESS;
+	//unsigned int			LocPos = 0;
+	char 					delimiter[] = " ";
+	char 					*ptr = 0;
+
+	if(0 == *Buffer)
+	{
+		return ERR_INSUFFICIENT_RESOURCES;
+	}
+	if(0 == Command)
+	{
+		return ERR_INSUFFICIENT_RESOURCES;
+	}
+	if(1 > CmdLength)
+	{
+		return ERR_INSUFFICIENT_RESOURCES;
+	}
+
+	ptr = strtok(Command, delimiter);
+
+	while (0 != ptr)
+	{
+		if(0 == strcmp("left", ptr))
+		{
+
+		}
+		else if (0 == strcmp("right", ptr))
+		{
+
+		}
+		else if (0 == strcmp("begin", ptr))
+		{
+
+		}
+		else if (0 == strcmp("end", ptr))
+		{
+
+		}
+		else if (0 == strcmp("start", ptr))
+		{
+
+		}
+		else if (0 == strcmp("speed", ptr))
+		{
+
+		}
+	}
+	//LocPos = EnqueueTupel(&Slider->RequestsList, Buffer, LocPos, MAX_PACKET_LENGTH, htons(Slider->CurrId), TLV_Move, (unsigned char *)"left", (uint8_t)sizeof("left"));
+
+
+	return Status;
 }
 
 /* -------------------------------------------------------------------------- */
 
 int
 main(
-    int argc,
-    char *argv[]
+    int 					argc,
+    char 					*argv[]
     )
 {
-    int                     Sockfd, n;
-    struct sockaddr_in      Serv_addr;
-    char         			Buffer[MAX_PACKET_LENGTH];
+    int                     n;
+    char         			* Buffer;
     unsigned int            CurrPos = 0;
-    //char                    ValueBuffer[MAX_VALUE_LENGTH];
+    size_t					CommandLength = MAX_VALUE_LENGTH;
+    char                    * CommandBuffer = 0;
+    static SLIDER_APP 		Slider;
+    ERROR_CODE				Status = ERR_SUCCESS;
     
-    TargetInit(&Serv_addr);
-    
-    Slider.ServerAdress = Serv_addr;
-    
-    InitializeListHead(&Slider.RequestsList);
-        
-    CurrPos = BuildMessage(&Slider, Buffer, 0, MAX_PACKET_LENGTH);
-    
-    Sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (Sockfd < 0)
-    {
-        TRACE("ERROR opening socket");
-	}
-       
-    if (connect(Sockfd,(struct sockaddr *) &Serv_addr,sizeof(Serv_addr)) < 0)
-    {
-        error("ERROR connecting");
-    }
-        
-    HexDump("Sending UDP message", Buffer, CurrPos);
 
-    if(0 > (n = write(Sockfd, Buffer, CurrPos)))
-    { 
-         error("ERROR writing to socket");
-    }
-    bzero(Buffer,256);
-    n = read(Sockfd, Buffer, 255);
-    if (n < 0) 
-         error("ERROR reading from socket");
-    printf("%s\n", Buffer);
-    close(Sockfd);
-    return 0;
+    __try
+	{
+		TargetInit(&Slider.ServerAdress);
+
+		InitializeListHead(&Slider.RequestsList);
+		SliderConnect(&Slider);
+
+		CommandBuffer = (char *)malloc(sizeof(char) * CommandLength);
+		Buffer = (char *)malloc(sizeof(char) * MAX_PACKET_LENGTH);
+		TRACE("Slider initialized. Starting input\n");
+
+
+		while(1)
+		{
+
+			if(0 != ReadCommandFromStdin(CommandBuffer, &CommandLength))
+			{
+				bzero(Buffer,MAX_PACKET_LENGTH);
+				bzero(CommandBuffer,CommandLength);
+				continue;
+			}
+			if(0 != ComputeCommand(&Slider, &Buffer, MAX_PACKET_LENGTH, CommandBuffer, CommandLength))
+			{
+				bzero(Buffer,MAX_PACKET_LENGTH);
+				bzero(CommandBuffer,CommandLength);
+				continue;
+			}
+
+			Slider.CurrId++;
+
+		//	CurrPos = BuildMessage(&Slider, Buffer, 0, MAX_PACKET_LENGTH);
+			HexDump("Sending UDP message", Buffer, CurrPos);
+
+			if(0 > (n = write(Slider.SockFd, &Buffer, CurrPos)))
+			{
+				 error("ERROR writing to socket");
+			}
+			bzero(Buffer,MAX_PACKET_LENGTH);
+			n = read(Slider.SockFd, Buffer, 255);
+			if (n < 0)
+				 error("ERROR reading from socket");
+			printf("%s\n", Buffer);
+		}
+	}
+
+    __finally
+	{
+    	free(CommandBuffer);
+    	SliderDisconnect(&Slider);
+	}
+    return Status;
 }

@@ -31,7 +31,7 @@
 
 #define DEFAULT_PORT        2390
 #define MAX_PACKET_LENGTH   255
-#define MAX_VALUE_LENGTH    20
+#define MAX_VALUE_LENGTH    64
 
 #define SLIDER_START_TAG	0x7C
 
@@ -75,8 +75,9 @@ typedef enum _ErrorCodes
 	ERR_SUCCESS				= 0,
 	ERR_INSUFFICIENT_RESOURCES,
     ERR_DEFAULT,
+	ERR_WRONG_INPUT,
 } DATA_PACKED
-ErrorCode;
+ERROR_CODE;
 
 typedef struct _slider_tlv_data
 {
@@ -103,6 +104,7 @@ typedef struct _SLIDER_APP
 	unsigned int 			LastPosition;
 	struct sockaddr_in      ServerAdress;
 	unsigned short			CurrId;
+	int 			SockFd;
 
 } DATA_PACKED
 SLIDER_APP, * PSLIDER_APP;

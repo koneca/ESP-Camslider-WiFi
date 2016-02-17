@@ -5,18 +5,19 @@
 
 SRC                            = .
 BASE                           = .
-OUT                            = out/
-MAPFILE                        = eftc0.map
-MAPFOLDER                      = ~/eft/mapfile
+OUT                            = out
+TARGET   					   = client
+SOURCES  					   = $(shell echo *.c)
+HEADERS 					   = $(shell echo *.h)
 
 COMPILER                       = gcc
 DEFINES                        = -DPOSIX -DGCC
 CINCLUDE                       = -I$(SRC)/includes
-CFLAGS                         = -Wall $(CINCLUDE)
+CFLAGS                         = -Wall $(CINCLUDE) -g -o0s
 LIBS                           = # -lpthread -lhwinfo
 
 
-all: directories dbg.o list.o client
+all: $(TARGET) directories
 
 # create directories
 
@@ -26,15 +27,8 @@ directories:
 clean:
 	rm -rf out
 
-dbg.o: dbg.c
-	@$(CC) -c $(CINCLUDE) $(CFLAGS) $(LIBS) $< -o $(OUT)/$@
-	@echo $<
-
-list.o: list.c
-	@$(CC) -c $(CINCLUDE) $(CFLAGS) $(LIBS) $< -o $(OUT)/$@
-	@echo $<
-	
-client:  $(SRC)/test-client.c $(OUT)/dbg.o $(OUT)/list.o
-	@$(CC)  $(CFLAGS) $(LIBS) $< -o $(OUT)/$@ $(OUT)/dbg.o
-	@echo $<
+$(TARGET): $(SOURCES) $(HEADERS)
+	$(CC) $(CFLAGS) $(DEFINES) -o $(OUT)/$(TARGET) $(SOURCES) $(LIBS)
+    
+.PHONY: all clean directories clean
 
