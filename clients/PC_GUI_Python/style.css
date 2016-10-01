@@ -1,0 +1,32 @@
+QMainWindow{
+    background-color: white;
+}
+
+QPushButton{
+    background: #3498db;
+    color: #ffffff;
+    padding: 7px 20px 7px 20px;
+    margin: 0 10px 0 10px;
+    min-width: 60px;
+    border-radius: 6px;
+}
+
+QSlider{
+     color: blue;
+     min-width: 350px;
+}
+
+
+#_server QLabel{
+    min-width: 50px;
+    padding: 0 0 0 10px;
+}
+
+QLineEdit{
+    min-width: 200px;
+    color: dark-gray;
+    border: 1px solid #CCC;
+    height: 25px;
+    margin: 0 0 0 20px;
+    padding-left: 10px;
+}
